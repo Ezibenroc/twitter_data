@@ -70,7 +70,7 @@ def count_patterns(df, patterns):
     counts = []
     for pat in patterns:
         tmp = get_pattern(df, pat).reset_index()
-        tmp = tmp[['name', 'tweet']].drop_duplicates().groupby('name').count()
+        tmp = tmp[['name', 'login', 'tweet']].drop_duplicates().groupby(['name', 'login']).count().reset_index()
         tmp['pattern'] = pat
         counts.append(tmp)
     return pandas.concat(counts).sort_values(by=['tweet', 'name'], ascending=False)
