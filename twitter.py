@@ -3,6 +3,8 @@ import re
 import tweepy
 import json
 import pandas as pandas
+import argparse
+import time
 
 
 with open('config.json') as f:
@@ -59,5 +61,26 @@ def get_pattern(df, pattern):
 def get_mentions(df):
     return get_pattern(df, '@[a-zA-Z0-9_]+')
 
+
 def get_hashtags(df):
     return get_pattern(df, '#[a-zA-Z0-9_]+')
+
+
+def main():
+    parser = argparse.ArgumentParser(description='Download tweets and dump then in a CSV')
+    parser.add_argument('--max_tweets', type=int, default=100,
+                        help='Maximal number of tweets to download for each user')
+    parser.add_argument('--output', type=str, default='/tmp/data.csv',
+                        help='Output CSV file')
+    parser.add_argument('users', type=str, nargs='+',
+                        help='List of twitter logins')
+    args = parser.parse_args()
+    t = time.time()
+    df = pandas.concat([get_data(user, n=args.max_tweets) for user in args.users])
+    df.to_csv(args.output, index=False)
+    t = time.time() - t
+    print(f'Downloaded {len(df)} tweets from {len(args.users)} users in {t:.2f} seconds')
+
+
+if __name__ == '__main__':
+    main()
