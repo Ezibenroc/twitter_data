@@ -66,6 +66,16 @@ def get_hashtags(df):
     return get_pattern(df, '#[a-zA-Z0-9_]+')
 
 
+def count_patterns(df, patterns):
+    counts = []
+    for pat in patterns:
+        tmp = get_pattern(df, pat).reset_index()
+        tmp = tmp[['name', 'tweet']].drop_duplicates().groupby('name').count()
+        tmp['pattern'] = pat
+        counts.append(tmp)
+    return pandas.concat(counts).sort_values(by=['tweet', 'name'], ascending=False)
+
+
 def main():
     parser = argparse.ArgumentParser(description='Download tweets and dump then in a CSV')
     parser.add_argument('--max_tweets', type=int, default=100,
