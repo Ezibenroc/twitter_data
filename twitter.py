@@ -77,10 +77,9 @@ def count_patterns(df, patterns):
     return pandas.concat(counts).sort_values(by=['tweet', 'name'], ascending=False)
 
 
-def tweet_to_words(tweet):
-    # TODO find something better
+def tweet_to_words(tweet, min_length=5):
     words = tweet.split()
-    words = [w.lower() for w in words if len(w) >= 4]
+    words = [w.lower() for w in words if len(w) >= min_length]
     dumb_words = {'dans', 'cette', 'leur', 'merci', 'très', 'nous', 'pour', 'grenoble', 'notre',
             'avec'}
     words = [w for w in words if w not in dumb_words]
@@ -88,11 +87,20 @@ def tweet_to_words(tweet):
     return words
 
 
-def count_words(df):
+def tweet_to_words_nltk(tweet, language='french', min_length=5):
+    import nltk
+    is_noun = lambda pos: pos[:2] == 'NN'
+    tokenized = nltk.word_tokenize(tweet, language=language)
+    words = [w for w in tokenized if len(w) >= min_length]
+    #words = [word for (word, pos) in nltk.pos_tag(words) if is_noun(pos)]
+    return words
+
+
+def count_words(df, split_func=tweet_to_words_nltk):
     counters = {login: Counter() for login in df['login'].unique()}
     for _, row in df.iterrows():
         login = row['login']
-        words = tweet_to_words(row['text'])
+        words = split_func(row['text'])
         for w in words:
             counters[login][w] += 1
     rows = []
