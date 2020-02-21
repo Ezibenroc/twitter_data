@@ -5,6 +5,7 @@ import json
 import pandas as pandas
 import argparse
 import time
+from collections import Counter
 
 
 with open('config.json') as f:
@@ -74,6 +75,31 @@ def count_patterns(df, patterns):
         tmp['pattern'] = pat
         counts.append(tmp)
     return pandas.concat(counts).sort_values(by=['tweet', 'name'], ascending=False)
+
+
+def tweet_to_words(tweet):
+    # TODO find something better
+    words = tweet.split()
+    words = [w.lower() for w in words if len(w) >= 4]
+    dumb_words = {'dans', 'cette', 'leur', 'merci', 'très', 'nous', 'pour', 'grenoble', 'notre',
+            'avec'}
+    words = [w for w in words if w not in dumb_words]
+    words = [w for w in words if not w.startswith('#') and not w.startswith('@')]
+    return words
+
+
+def count_words(df):
+    counters = {login: Counter() for login in df['login'].unique()}
+    for _, row in df.iterrows():
+        login = row['login']
+        words = tweet_to_words(row['text'])
+        for w in words:
+            counters[login][w] += 1
+    rows = []
+    for login, c in counters.items():
+        rows.extend([{'login': login, 'word': word, 'count': count} for word, count in c.items()])
+    df = pandas.DataFrame(rows)
+    return df
 
 
 def main():
