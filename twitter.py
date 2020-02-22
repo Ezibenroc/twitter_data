@@ -19,7 +19,7 @@ api = tweepy.API(auth, wait_on_rate_limit=True)
 
 def get_tweets(user, n=100):
     tweets = []
-    for i, status in enumerate(tweepy.Cursor(api.user_timeline, screen_name=user, tweet_mode="extended", include_rts=False).items()):
+    for i, status in enumerate(tweepy.Cursor(api.user_timeline, count=100, screen_name=user, tweet_mode="extended", include_rts=False).items()):
         tweets.append(status)
         if i == n-1:
             break
@@ -124,6 +124,7 @@ def main():
     df.to_csv(args.output, index=False)
     t = time.time() - t
     print(f'Downloaded {len(df)} tweets from {len(args.users)} users in {t:.2f} seconds')
+    print(f'Tweets made between {df.date.min().date()} and {df.date.max().date()}')
 
 
 if __name__ == '__main__':
