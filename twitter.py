@@ -6,6 +6,7 @@ import pandas as pandas
 import argparse
 import time
 from collections import Counter
+from emoji import UNICODE_EMOJI
 
 
 with open('config.json') as f:
@@ -92,15 +93,27 @@ def tweet_to_words_nltk(tweet, language='french', min_length=5):
     is_noun = lambda pos: pos[:2] == 'NN'
     tokenized = nltk.word_tokenize(tweet, language=language)
     words = [w for w in tokenized if len(w) >= min_length]
+    words = [w.lower() for w in words]
     #words = [word for (word, pos) in nltk.pos_tag(words) if is_noun(pos)]
     return words
 
 
-def count_words(df, split_func=tweet_to_words_nltk):
+def is_emoji(s):
+    '''
+    From https://stackoverflow.com/a/36217640/4110059
+    '''
+    return s in UNICODE_EMOJI
+
+
+def tweet_to_emojis(tweet, min_length=None):
+    return [char for char in tweet if is_emoji(char)]
+
+
+def count_words(df, split_func=tweet_to_words_nltk, min_length=5):
     counters = {login: Counter() for login in df['login'].unique()}
     for _, row in df.iterrows():
         login = row['login']
-        words = split_func(row['text'])
+        words = split_func(row['text'], min_length=min_length)
         for w in words:
             counters[login][w] += 1
     rows = []
