@@ -16,7 +16,7 @@ with open('config.json') as f:
 
 auth = tweepy.OAuthHandler(config['consumer_key'], config['consumer_secret'])
 auth.set_access_token(config['access_token'], config['access_token_secret'])
-api = tweepy.API(auth, wait_on_rate_limit=True)
+api = tweepy.API(auth, wait_on_rate_limit=True, wait_on_rate_limit_notify=True)
 
 
 def get_tweets(user, n=100):
@@ -42,18 +42,34 @@ def tweet_to_dict(tweet):
         'source': tweet.source,
         'coordinates': tweet.coordinates,
         'geo': tweet.geo,
+        'id': tweet.id,
     }
 
 
-def get_followers(user, n=0):
+def get_follower_ids(user, n=0):
     followers = []
-    for i, follower in enumerate(tweepy.Cursor(api.followers, count=200, screen_name=user).items()):
+    for i, follower in enumerate(tweepy.Cursor(api.followers_ids, count=5000, screen_name=user).items()):
         followers.append(follower)
         if i == n-1:
             break
-        if i % 100 == 0:
-            print(f'{datetime.datetime.now()} | {user} | {i:5d}')
     return followers
+
+
+def ids_to_users(userids):
+    '''
+    Taken from https://stackoverflow.com/a/58234314/4110059
+    '''
+    users = []
+    u_count = len(userids)
+    for i in range(int(u_count/100) + 1):
+        end_loc = min((i + 1) * 100, u_count)
+        users.extend(api.lookup_users(user_ids=userids[i * 100:end_loc]))
+    return users
+
+
+def get_followers(user, n=0):
+    ids = get_follower_ids(user, n=n)
+    return ids_to_users(ids)
 
 
 def user_to_dict(user):
@@ -71,6 +87,7 @@ def user_to_dict(user):
         'verified': user.verified,
         'listed_count': user.listed_count,
         'protected': user.protected,
+        'id': user.id,
     }
 
 
