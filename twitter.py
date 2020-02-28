@@ -42,16 +42,36 @@ def tweet_to_dict(tweet):
     }
 
 
+def get_followers(user, n=0):
+    followers = []
+    for i, follower in enumerate(tweepy.Cursor(api.followers, count=100, screen_name=user).items()):
+        followers.append(follower)
+        if i == n-1:
+            break
+    return followers
+
+
+def user_to_dict(user):
+    return {
+        'name': user.name,
+        'screen_name': user.screen_name,
+        'date': user.created_at,
+        'description': user.description,
+        'followers_count': user.followers_count,
+        'following_count': user.friends_count,
+        'statuses_count': user.statuses_count,
+        'likes_count': user.favourites_count,
+        'default_background':  user.default_profile,
+        'default_avatar': user.default_profile_image,
+        'verified': user.verified,
+        'listed_count': user.listed_count,
+        'protected': user.protected,
+    }
+
+
 def build_dataframe(obj_list, dict_func):
     obj_list = [dict_func(obj) for obj in obj_list]
     return pandas.DataFrame(obj_list)
-
-
-def get_tweets_df(user, n=100, tag=None):
-    df = build_dataframe(get_tweets(user, n=n), tweet_to_dict)
-    if tag is not None:
-        df['tag'] = tag
-    return df
 
 
 def get_pattern(df, pattern):
@@ -125,21 +145,31 @@ def count_words(df, split_func=tweet_to_words_nltk, min_length=5):
     return df
 
 
+def tweets_of_user(obj, max_n):
+    return build_dataframe(get_tweets(obj, n=max_n), tweet_to_dict)
+
+
+def followers_of_user(obj, max_n):
+    return build_dataframe(get_followers(obj, n=max_n), user_to_dict)
+
+
 def main():
-    parser = argparse.ArgumentParser(description='Download tweets and dump then in a CSV')
-    parser.add_argument('--max_tweets', type=int, default=100,
-                        help='Maximal number of tweets to download for each user')
+    functions = [tweets_of_user, followers_of_user]
+    choices = {func.__name__: func for func in functions}
+    parser = argparse.ArgumentParser(description='Download twitter data and dump it in a CSV')
+    parser.add_argument('--max_number', type=int, default=100,
+                        help='Maximal number of items to download')
     parser.add_argument('--output', type=str, default='/tmp/data.csv',
                         help='Output CSV file')
-    parser.add_argument('users', type=str, nargs='+',
-                        help='List of twitter logins')
+    parser.add_argument('mode', choices=choices)
+    parser.add_argument('obj', type=str,
+                        help='List of twitter ID (e.g. user logins)')
     args = parser.parse_args()
     t = time.time()
-    df = pandas.concat([get_tweets_df(user, n=args.max_tweets) for user in args.users])
+    df = choices[args.mode](args.obj, args.max_number)
     df.to_csv(args.output, index=False)
     t = time.time() - t
-    print(f'Downloaded {len(df)} tweets from {len(args.users)} users in {t:.2f} seconds')
-    print(f'Tweets made between {df.date.min().date()} and {df.date.max().date()}')
+    print(f'Downloaded {len(df)} objects from twitter in {t:.2f} seconds')
 
 
 if __name__ == '__main__':
