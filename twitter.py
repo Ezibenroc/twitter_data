@@ -27,26 +27,28 @@ def get_tweets(user, n=100):
     return tweets
 
 
-def build_dataframe(tweets):
-    tweet_list = []
-    for t in tweets:
-        tweet_list.append({
-            'name': t.author.name,
-            'login': t.author.screen_name,
-            'likes': t.favorite_count,
-            'retweets': t.retweet_count,
-            'text': t.full_text,
-            'date': t.created_at,
-            'in_reply': t.in_reply_to_screen_name,
-            'source': t.source,
-            'coordinates': t.coordinates,
-            'geo': t.geo,
-        })
-    return pandas.DataFrame(tweet_list)
+def tweet_to_dict(tweet):
+    return {
+        'name': tweet.author.name,
+        'login': tweet.author.screen_name,
+        'likes': tweet.favorite_count,
+        'retweets': tweet.retweet_count,
+        'text': tweet.full_text,
+        'date': tweet.created_at,
+        'in_reply': tweet.in_reply_to_screen_name,
+        'source': tweet.source,
+        'coordinates': tweet.coordinates,
+        'geo': tweet.geo,
+    }
 
 
-def get_data(user, n=100, tag=None):
-    df = build_dataframe(get_tweets(user, n=n))
+def build_dataframe(obj_list, dict_func):
+    obj_list = [dict_func(obj) for obj in obj_list]
+    return pandas.DataFrame(obj_list)
+
+
+def get_tweets_df(user, n=100, tag=None):
+    df = build_dataframe(get_tweets(user, n=n), tweet_to_dict)
     if tag is not None:
         df['tag'] = tag
     return df
@@ -133,7 +135,7 @@ def main():
                         help='List of twitter logins')
     args = parser.parse_args()
     t = time.time()
-    df = pandas.concat([get_data(user, n=args.max_tweets) for user in args.users])
+    df = pandas.concat([get_tweets_df(user, n=args.max_tweets) for user in args.users])
     df.to_csv(args.output, index=False)
     t = time.time() - t
     print(f'Downloaded {len(df)} tweets from {len(args.users)} users in {t:.2f} seconds')
