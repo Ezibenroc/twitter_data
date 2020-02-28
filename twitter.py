@@ -5,6 +5,7 @@ import json
 import pandas as pandas
 import argparse
 import time
+import csv
 import datetime
 from collections import Counter
 from emoji import UNICODE_EMOJI
@@ -189,9 +190,18 @@ def main():
     args = parser.parse_args()
     t = time.time()
     df = choices[args.mode](args.obj, args.max_number)
-    df.to_csv(args.output, index=False)
+    df.to_csv(args.output, index=False, quoting=csv.QUOTE_ALL)
     t = time.time() - t
     print(f'Downloaded {len(df)} objects from twitter in {t:.2f} seconds')
+
+    # Sanity check, to verify that we are able to read the dataframe back...
+    df['date'] = df['date'].astype(str)
+    df.drop('description', axis=1, inplace=True)
+    newdf = pandas.read_csv(args.output)
+    newdf.drop('description', axis=1, inplace=True)
+    pandas.testing.assert_frame_equal(df, newdf)
+    if not df.equals(newdf):
+        print(f'Error, downloaded {len(df)} objects and read {len(newdf)} objects')
 
 
 if __name__ == '__main__':
