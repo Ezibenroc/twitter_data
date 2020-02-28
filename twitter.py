@@ -56,6 +56,10 @@ def get_follower_ids(user, n=0):
     return followers
 
 
+def get_retweeter_ids(tweet_id):
+    return list(tweepy.Cursor(api.retweeters, count=100, id=tweet_id).items())
+
+
 def ids_to_users(userids):
     '''
     Taken from https://stackoverflow.com/a/58234314/4110059
@@ -169,12 +173,38 @@ def count_words(df, split_func=tweet_to_words_nltk, min_length=5):
     return df
 
 
-def tweets_of_user(obj, max_n):
-    return build_dataframe(get_tweets(obj, n=max_n), tweet_to_dict)
+def tweets_of_user(args):
+    if args.full:
+        os.makedirs(args.output)
+    tweets = build_dataframe(get_tweets(args.obj, n=args.max_number), tweet_to_dict)
+    filename = os.path.join(args.output, 'tweets.csv') if args.full else args.output
+    write_csv(tweets, filename)
+    if not args.full:
+        return
+    if len(tweets) == 0:
+        return
+    ids = list(tweets['id'])
+    retweeters = []
+    for tweet_id in ids:
+        for usr_id in get_retweeter_ids(tweet_id):
+            retweeters.append({'tweet_id': tweet_id, 'user_id': usr_id})
+    retweeters = pandas.DataFrame(retweeters)
+    filename = os.path.join(args.output, 'retweets.csv')
+    write_csv(retweeters, filename)
+    ids = list(retweeters['user_id'].unique())
+    users = build_dataframe(ids_to_users(ids), user_to_dict)
+    filename = os.path.join(args.output, 'retweeters.csv')
+    write_csv(users, filename)
 
 
-def followers_of_user(obj, max_n):
-    return build_dataframe(get_followers(obj, n=max_n), user_to_dict)
+def followers_of_user(args):
+    df = build_dataframe(get_followers(args.obj, n=args.max_number), user_to_dict)
+    write_csv(df, args.output)
+
+
+def write_csv(df, filename):
+    df.to_csv(filename, index=False, quoting=csv.QUOTE_ALL)
+    print(f'File {filename} created with a {len(df)}×{len(df.columns)} dataframe')
 
 
 def main():
@@ -185,24 +215,16 @@ def main():
                         help='Maximal number of items to download')
     parser.add_argument('--output', type=str, default='/tmp/data.csv',
                         help='Output CSV file')
+    parser.add_argument('--full', action='store_true',
+                        help='Download more data (e.g. users that retweeted the tweets)')
     parser.add_argument('mode', choices=choices)
     parser.add_argument('obj', type=str,
-                        help='List of twitter ID (e.g. user logins)')
+                        help='User login')
     args = parser.parse_args()
     t = time.time()
-    df = choices[args.mode](args.obj, args.max_number)
-    df.to_csv(args.output, index=False, quoting=csv.QUOTE_ALL)
+    choices[args.mode](args)
     t = time.time() - t
-    print(f'Downloaded {len(df)} objects from twitter in {t:.2f} seconds')
-
-    # Sanity check, to verify that we are able to read the dataframe back...
-    df['date'] = df['date'].astype(str)
-    df.drop('description', axis=1, inplace=True)
-    newdf = pandas.read_csv(args.output)
-    newdf.drop('description', axis=1, inplace=True)
-    pandas.testing.assert_frame_equal(df, newdf)
-    if not df.equals(newdf):
-        print(f'Error, downloaded {len(df)} objects and read {len(newdf)} objects')
+    print(f'Total time: {t:.2f} seconds')
 
 
 if __name__ == '__main__':
