@@ -21,7 +21,7 @@ api = tweepy.API(auth, wait_on_rate_limit=True)
 
 def get_tweets(user, n=100):
     tweets = []
-    for i, status in enumerate(tweepy.Cursor(api.user_timeline, count=100, screen_name=user, tweet_mode="extended", include_rts=False).items()):
+    for i, status in enumerate(tweepy.Cursor(api.user_timeline, count=200, screen_name=user, tweet_mode="extended", include_rts=False).items()):
         tweets.append(status)
         if i == n-1:
             break
@@ -47,7 +47,7 @@ def tweet_to_dict(tweet):
 
 def get_followers(user, n=0):
     followers = []
-    for i, follower in enumerate(tweepy.Cursor(api.followers, count=100, screen_name=user).items()):
+    for i, follower in enumerate(tweepy.Cursor(api.followers, count=200, screen_name=user).items()):
         followers.append(follower)
         if i == n-1:
             break
