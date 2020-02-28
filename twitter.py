@@ -89,6 +89,7 @@ def user_to_dict(user):
         'listed_count': user.listed_count,
         'protected': user.protected,
         'id': user.id,
+        'location': user.location,
     }
 
 
