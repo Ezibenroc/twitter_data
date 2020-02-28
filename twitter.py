@@ -5,6 +5,7 @@ import json
 import pandas as pandas
 import argparse
 import time
+import datetime
 from collections import Counter
 from emoji import UNICODE_EMOJI
 
@@ -24,6 +25,8 @@ def get_tweets(user, n=100):
         tweets.append(status)
         if i == n-1:
             break
+        if i % 100 == 0:
+            print(f'{datetime.datetime.now()} | {user} | {i:5d}')
     return tweets
 
 
@@ -48,6 +51,8 @@ def get_followers(user, n=0):
         followers.append(follower)
         if i == n-1:
             break
+        if i % 100 == 0:
+            print(f'{datetime.datetime.now()} | {user} | {i:5d}')
     return followers
 
 
