@@ -45,6 +45,10 @@ def get_follower_ids(user, n=0):
     return list(tweepy.Cursor(api.followers_ids, count=5000, screen_name=user).items(n))
 
 
+def get_friend_ids(user, n=0):
+    return list(tweepy.Cursor(api.friends_ids, count=5000, screen_name=user).items(n))
+
+
 def get_retweeter_ids(tweet_id):
     return list(tweepy.Cursor(api.retweeters, count=100, id=tweet_id).items())
 
@@ -63,6 +67,11 @@ def ids_to_users(userids):
 
 def get_followers(user, n=0):
     ids = get_follower_ids(user, n=n)
+    return ids_to_users(ids)
+
+
+def get_friends(user, n=0):
+    ids = get_friend_ids(user, n=n)
     return ids_to_users(ids)
 
 
@@ -191,13 +200,18 @@ def followers_of_user(args):
     write_csv(df, args.output)
 
 
+def friends_of_user(args):
+    df = build_dataframe(get_friends(args.obj, n=args.max_number), user_to_dict)
+    write_csv(df, args.output)
+
+
 def write_csv(df, filename):
     df.to_csv(filename, index=False, quoting=csv.QUOTE_ALL)
     print(f'File {filename} created with a {len(df)}×{len(df.columns)} dataframe')
 
 
 def main():
-    functions = [tweets_of_user, followers_of_user]
+    functions = [tweets_of_user, followers_of_user, friends_of_user]
     choices = {func.__name__: func for func in functions}
     parser = argparse.ArgumentParser(description='Download twitter data and dump it in a CSV')
     parser.add_argument('--max_number', type=int, default=100,
