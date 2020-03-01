@@ -21,14 +21,8 @@ api = tweepy.API(auth, wait_on_rate_limit=True, wait_on_rate_limit_notify=True)
 
 
 def get_tweets(user, n=100):
-    tweets = []
-    for i, status in enumerate(tweepy.Cursor(api.user_timeline, count=200, screen_name=user, tweet_mode="extended", include_rts=False).items()):
-        tweets.append(status)
-        if i == n-1:
-            break
-        if i % 100 == 0:
-            print(f'{datetime.datetime.now()} | {user} | {i:5d}')
-    return tweets
+    return list(tweepy.Cursor(api.user_timeline, count=200, screen_name=user, tweet_mode="extended",
+        include_rts=False).items(n))
 
 
 def tweet_to_dict(tweet):
@@ -48,12 +42,7 @@ def tweet_to_dict(tweet):
 
 
 def get_follower_ids(user, n=0):
-    followers = []
-    for i, follower in enumerate(tweepy.Cursor(api.followers_ids, count=5000, screen_name=user).items()):
-        followers.append(follower)
-        if i == n-1:
-            break
-    return followers
+    return list(tweepy.Cursor(api.followers_ids, count=5000, screen_name=user).items(n))
 
 
 def get_retweeter_ids(tweet_id):
