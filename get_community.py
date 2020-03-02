@@ -2,6 +2,7 @@ import time
 import sys
 import random
 from twitter import *
+from tweepy.error import TweepError
 
 
 class Graph:
@@ -12,26 +13,27 @@ class Graph:
         self.nodes = set()
         self.edges = set()
 
-    def add_edge(self, usr, other):
+    def add_edge(self, usr, other, only_if_exists):
         if (usr, other) in self.edges:
+            return
+        if only_if_exists and (usr not in self.nodes or other not in self.nodes):
             return
         self.nodes.add(usr)
         self.nodes.add(other)
         self.edges.add((usr, other))
         self.file.write(f'{usr},{other}\n')
 
-    def add_edge_if_exists(self, usr, other):
-        if usr in self.nodes and other in self.nodes:
-            self.add_edge(usr, other)
 
-
-def explore_users(user_list, graph):
+def explore_users(user_list, graph, only_if_exists):
     for i, usr in enumerate(user_list):
         print(f'{i:5d}/{len(user_list):5d}')
-        for other in get_follower_ids(usr):
-            graph.add_edge(other, usr)
-        for other in get_friend_ids(usr):
-            graph.add_edge(usr, other)
+        try:
+            for other in get_follower_ids(usr):
+                graph.add_edge(other, usr, only_if_exists)
+            for other in get_friend_ids(usr):
+                graph.add_edge(usr, other, only_if_exists)
+        except TweepError:
+            continue
 
 
 def get_community(base_users, output_file):
@@ -39,7 +41,7 @@ def get_community(base_users, output_file):
     base_users = [api.get_user(screen_name=usr).id for usr in base_users]
     graph = Graph(output_file)
     try:
-        explore_users(base_users, graph)
+        explore_users(base_users, graph, only_if_exists=False)
     except KeyboardInterrupt:
         print('Download of the nodes interrupted by user')
     community = list(graph.nodes - set(base_users))
@@ -47,7 +49,7 @@ def get_community(base_users, output_file):
     print(f'Downloaded the {len(community)} nodes of the graph in {t2-t1:.2f} seconds')
     random.shuffle(community)
     try:
-        explore_users(community, graph)
+        explore_users(community, graph, only_if_exists=True)
     except KeyboardInterrupt:
         print('Download of the edges interrupted by user')
     t3 = time.time()
