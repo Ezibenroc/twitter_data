@@ -42,11 +42,22 @@ def tweet_to_dict(tweet):
 
 
 def get_follower_ids(user, n=0):
-    return list(tweepy.Cursor(api.followers_ids, count=5000, screen_name=user).items(n))
+    if isinstance(user, str):
+        kwargs = {'screen_name': user}
+    else:
+        assert isinstance(user, int)
+        kwargs = {'id': user}
+    return list(tweepy.Cursor(api.followers_ids, count=5000, **kwargs).items(n))
+
 
 
 def get_friend_ids(user, n=0):
-    return list(tweepy.Cursor(api.friends_ids, count=5000, screen_name=user).items(n))
+    if isinstance(user, str):
+        kwargs = {'screen_name': user}
+    else:
+        assert isinstance(user, int)
+        kwargs = {'id': user}
+    return list(tweepy.Cursor(api.friends_ids, count=5000, **kwargs).items(n))
 
 
 def get_retweeter_ids(tweet_id):
