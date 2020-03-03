@@ -36,7 +36,7 @@ def explore_users(user_list, graph, only_if_exists):
             continue
 
 
-def get_community(base_users, output_file):
+def get_community(base_users, output_file, filter_location=None):
     t1 = time.time()
     base_users = [api.get_user(screen_name=usr).id for usr in base_users]
     graph = Graph(output_file)
@@ -47,6 +47,11 @@ def get_community(base_users, output_file):
     community = list(graph.nodes - set(base_users))
     t2 = time.time()
     print(f'Downloaded the {len(community)} nodes of the graph in {t2-t1:.2f} seconds')
+    if filter_location:
+        loc = filter_location.lower()
+        users = ids_to_users(community)
+        community = [usr.id for usr in users if loc in usr.location.lower()]
+    print(f'Removed all users not located in {filter_location}, there remains {len(community)}')
     random.shuffle(community)
     try:
         explore_users(community, graph, only_if_exists=True)
@@ -60,7 +65,7 @@ def get_community(base_users, output_file):
 def main():
     if len(sys.argv) <= 1:
         sys.exit(f'Syntax: {sys.argv[0]} <twitter_users>')
-    get_community(sys.argv[1:], 'community.csv')
+    get_community(sys.argv[1:], 'community.csv', filter_location='Grenoble')
 
 
 if __name__ == '__main__':
