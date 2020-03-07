@@ -1,5 +1,6 @@
 import time
 import sys
+import os
 import random
 from twitter import *
 from tweepy.error import TweepError
@@ -7,11 +8,30 @@ from tweepy.error import TweepError
 
 class Graph:
     def __init__(self, output_file):
-        self.output_file = output_file
-        self.file = open(output_file, 'w')
-        self.file.write('follower,followed\n')
         self.nodes = set()
         self.edges = set()
+        if os.path.isfile(output_file):
+            self.init_from_file(output_file)
+            self.file = open(output_file, 'a')
+        else:
+            self.file = open(output_file, 'w')
+            self.file.write('follower,followed\n')
+        self.initial_nodes = set(self.nodes)
+        self.output_file = output_file
+
+    def init_from_file(self, filename):
+        with open(filename, 'r') as f:
+            for i, line in enumerate(f):
+                if i == 0:
+                    assert line == 'follower,followed\n'
+                    continue
+                usr, other = line.split(',')
+                usr = int(usr)
+                other = int(other)
+                self.nodes.add(usr)
+                self.nodes.add(other)
+                self.edges.add((usr, other))
+        print(f'Initialized from file, got {len(self.nodes)} nodes and {len(self.edges)} edges')
 
     def add_edge(self, usr, other, only_if_exists):
         if (usr, other) in self.edges:
@@ -44,9 +64,11 @@ def get_community(base_users, output_file, filter_location=None):
         explore_users(base_users, graph, only_if_exists=False)
     except KeyboardInterrupt:
         print('Download of the nodes interrupted by user')
-    community = list(graph.nodes - set(base_users))
+    community = graph.nodes - set(base_users)
     t2 = time.time()
     print(f'Downloaded the {len(community)} nodes of the graph in {t2-t1:.2f} seconds')
+    community = list(community - graph.initial_nodes)
+    print(f'Removed all users already in the file, there remains {len(community)}')
     if filter_location:
         loc = filter_location.lower()
         users = ids_to_users(community)
